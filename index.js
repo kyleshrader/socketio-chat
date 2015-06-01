@@ -29,7 +29,17 @@ io.on('connection', function(socket) {
             io.emit('message', name + ' has connected');
         } else if (msg.lastIndexOf('/', 0) === 0) {
             if (msg.lastIndexOf('/online', 0) === 0) {
-                socket.emit('message', Object.keys(online).length + ' users online.');
+                var result = Object.keys(online).length + ' users online.';
+                socket.emit('message', result);
+            } else if (msg.lastIndexOf('/who', 0) === 0) {
+                var usernames = new Array;
+                Object.keys(online).forEach(function (key) {
+                    var username = online[key];
+                    if (username)
+                        usernames.push(username);
+                });
+                var result = usernames.join([seperator=', ']);
+                socket.emit('message', result);
             }
         } else {
             console.log(name + ': ' + msg);
