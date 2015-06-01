@@ -10,22 +10,30 @@ app.get('/', function (req, res) {
     res.sendFile('index.html');
 });
 
-var users = 0;
+var user_inc = 0;
+var online = {};
 io.on('connection', function(socket) {
     console.log('a user connected');
-    var id = users++;
+    var id = user_inc++;
     var name = '';
+    online[id] = '';
     socket.on('disconnect', function() {
+        delete online[id];
         console.log('user disconnected');
     });
     socket.on('message sent', function(msg) {
         if (!name) {
             name = msg;
+            online[id] = name;
             console.log('user ' + id + ' is named ' + name);
-            io.emit('message received', name + ' has connected');
+            io.emit('message', name + ' has connected');
+        } else if (msg.lastIndexOf('/', 0) === 0) {
+            if (msg.lastIndexOf('/online', 0) === 0) {
+                socket.emit('message', Object.keys(online).length + ' users online.');
+            }
         } else {
             console.log(name + ': ' + msg);
-            io.emit('message received', name + ': ' + msg);
+            io.emit('message', name + ': ' + msg);
         }
     });
 });
