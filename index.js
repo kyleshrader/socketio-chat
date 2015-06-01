@@ -17,7 +17,7 @@ io.on('connection', function(socket) {
     });
     socket.on('message sent', function(msg) {
         console.log(msg);
-        socket.emit('message received', msg);
+        io.emit('message received', msg);
     });
 });
 
