@@ -37,7 +37,7 @@ function user_connected(socket, id) {
         socket.emit('name', getName(id));
         welcomeUser(id);
     }
-    else console.log('a user connected');
+    else console.log(getNameStr(id) + ' connected.');
 };
 
 function user_setname(socket, id, name) {
