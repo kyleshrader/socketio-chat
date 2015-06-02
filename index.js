@@ -10,43 +10,129 @@ app.get('/', function (req, res) {
     res.sendFile('index.html');
 });
 
+var users = {};
 var user_inc = 0;
-var online = {};
 io.on('connection', function(socket) {
-    console.log('a user connected');
     var id = user_inc++;
-    var name = '';
-    online[id] = '';
-    socket.on('disconnect', function() {
-        delete online[id];
-        console.log('user disconnected');
+    user_connected(socket, id);
+    socket.on('setname', function(name) {
+        user_setname(socket, id, name);
     });
-    socket.on('message sent', function(msg) {
-        if (!name) {
-            name = msg;
-            online[id] = name;
-            console.log('user ' + id + ' is named ' + name);
-            io.emit('message', name + ' has connected');
-        } else if (msg.lastIndexOf('/', 0) === 0) {
-            if (msg.lastIndexOf('/online', 0) === 0) {
-                var result = Object.keys(online).length + ' users online.';
-                socket.emit('message', result);
-            } else if (msg.lastIndexOf('/who', 0) === 0) {
-                var usernames = new Array;
-                Object.keys(online).forEach(function (key) {
-                    var username = online[key];
-                    if (username)
-                        usernames.push(username);
-                });
-                var result = usernames.join([seperator=', ']);
-                socket.emit('message', result);
-            }
-        } else {
-            console.log(name + ': ' + msg);
-            io.emit('message', name + ': ' + msg);
-        }
+    socket.on('message', function(msg) {
+        user_message(socket, id, msg);
+    });
+    socket.on('command', function(cmd) {
+        user_command(socket, id, cmd);
+    });
+    socket.on('disconnect', function() {
+        user_disconnected(socket, id);
     });
 });
+
+function user_connected(socket, id) {
+    if (!users[id]) users[id] = {};
+    if (hasName(id)) {
+        socket.emit('name', getName(id));
+        welcomeUser(id);
+    }
+    else console.log('a user connected');
+};
+
+function user_setname(socket, id, name) {
+    var oldName = getNameStr(id);
+    setName(id, name);
+    var newName = getNameStr(id);
+    if (isOnline(id)) {
+        var output = oldName + ' is now ' + newName;
+        console.log(output);
+        io.emit('message', output);
+    } else {
+        welcomeUser(id);
+    }
+};
+
+function user_message(socket, id, msg) {
+    var output = getNameStr(id) + ': ' + msg;
+    console.log(output);
+    io.emit('message', output);
+};
+
+function user_command(socket, id, cmd) {
+    var command = cmd.substr(0, cmd.indexOf(' ')) || cmd;
+    var argument = cmd.substr(cmd.indexOf(' ')+1, cmd.length) || '';
+    if(Object.keys(cmds).indexOf(command) !== -1)
+        cmds[command](socket, id, argument);
+};
+
+function user_disconnected(socket, id) {
+    var output = getNameStr(id) + ' disconnected';
+    users[id]['online'] = false;
+    if (isOnline(id)) {
+        io.emit('message', output);
+    }
+    console.log(output);
+};
+
+function welcomeUser(id) {
+    var output = getNameStr(id) + ' connected.';
+    users[id]['online'] = true;
+    console.log(output);
+    io.emit('message', output);
+};
+
+function hasName(id) {
+    return getName(id) ? true : false;
+};
+
+function getNameStr(id) {
+    return getName(id) || 'user ' + id;
+};
+
+function getName(id) {
+    return users[id] ? users[id]['name'] : undefined;
+};
+
+function setName(id, name) {
+    if (!users[id]) users[id] = {};
+    users[id]['name'] = name;
+};
+
+function isOnline(id) {
+    return users[id] ? users[id]['online'] : false;
+};
+
+var cmd_online = function(socket) {
+    var online = [];
+    for(var id in users)
+        if(isOnline(id))
+            online.push(getName(id));
+    socket.emit('message', online.join([seperator=', ']));
+};
+
+var cmd_who = function(socket) {
+    var count = 0;
+    for(var id in users)
+        if(isOnline(id))
+            count++;
+    socket.emit('message', count + ' users online.');
+};
+
+var cmd_nick = function(socket, id, name) {
+    user_setname(socket, id, name);
+};
+
+var cmd_me = function(socket, id, msg) {
+    var output = getName(id) + ' ' + msg;
+    console.log(output);
+    io.emit('message', output);
+};
+
+var cmds = {
+    'online': cmd_online,
+    'who': cmd_who,
+    'nick': cmd_nick,
+    'me': cmd_me
+};
 
 server.listen(app.get('port'), function() {
     console.log('Socket.io chat server is running on port', app.get('port'));

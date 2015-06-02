@@ -14,12 +14,26 @@
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
         <script>
             var socket = io();
+            var name = '';
 
             $('#chatbox').submit(function() {
-                socket.emit('message sent', $('#msg').val());
+                var msg = $('#msg').val();
+
+                if(!name) setName(msg);
+                else if (msg[0] === '/') socket.emit('command', msg.slice(1));
+                else socket.emit('message', msg);
                 $('#msg').val('');
-                $('#msg').attr('placeholder', '');
                 return false;
+            });
+
+            function setName(myName) {
+                name = myName;
+                $('#msg').removeAttr('placeholder');
+                socket.emit('setname', myName);
+            };
+
+            socket.on('name', function(myName) {
+                setName(myname);
             });
 
             socket.on('message', function(msg) {
