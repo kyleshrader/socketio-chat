@@ -1,7 +1,17 @@
-<!doctype html>
+<gdoctype html>
 <html>
     <head>
         <title>SocketIO Chat</title>
+        <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { font: 13px Helvetica, Arial; }
+            form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
+            form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
+            form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
+            #messages { list-style-type: none; margin: 0; padding: 0; margin-bottom: 40px; }
+            #messages li { padding: 5px 30px; }
+            #messages li:nth-child(odd) { background: #eee; }
+        </style>
     </head>
     <body>
         <ul id="messages"></ul>
@@ -18,8 +28,8 @@
 
             $('#chatbox').submit(function() {
                 var msg = $('#msg').val();
-
-                if(!name) setName(msg);
+                if (!msg) {}
+                else if (!name) setName(msg);
                 else if (msg[0] === '/') socket.emit('command', msg.slice(1));
                 else socket.emit('message', msg);
                 $('#msg').val('');

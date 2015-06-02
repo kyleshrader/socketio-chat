@@ -65,10 +65,11 @@ function user_command(socket, id, cmd) {
 
 function user_disconnected(socket, id) {
     var output = getNameStr(id) + ' disconnected';
-    users[id]['online'] = false;
     if (isOnline(id)) {
         io.emit('message', output);
+        lines.push(output);
     }
+    users[id]['online'] = false;
     console.log(output);
 };
 
