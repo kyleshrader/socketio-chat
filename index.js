@@ -12,6 +12,7 @@ app.get('/', function (req, res) {
 
 var users = {};
 var user_inc = 0;
+var lines = [];
 io.on('connection', function(socket) {
     var id = user_inc++;
     user_connected(socket, id);
@@ -30,6 +31,7 @@ io.on('connection', function(socket) {
 });
 
 function user_connected(socket, id) {
+    for(var i = 0; i < lines.length; i++) socket.emit('message', lines[i]);
     if (!users[id]) users[id] = {};
     if (hasName(id)) {
         socket.emit('name', getName(id));
@@ -44,17 +46,14 @@ function user_setname(socket, id, name) {
     var newName = getNameStr(id);
     if (isOnline(id)) {
         var output = oldName + ' is now ' + newName;
-        console.log(output);
-        io.emit('message', output);
+        send_output(output);
     } else {
         welcomeUser(id);
     }
 };
 
 function user_message(socket, id, msg) {
-    var output = getNameStr(id) + ': ' + msg;
-    console.log(output);
-    io.emit('message', output);
+    send_message(id, msg);
 };
 
 function user_command(socket, id, cmd) {
@@ -73,11 +72,21 @@ function user_disconnected(socket, id) {
     console.log(output);
 };
 
+function send_output(output) {
+    lines.push(output);
+    console.log(output);
+    io.emit('message', output);
+};
+
+function send_message(sender_id, msg) {
+    var output = getNameStr(sender_id) + ': ' + msg;
+    send_output(output);
+};
+
 function welcomeUser(id) {
     var output = getNameStr(id) + ' connected.';
     users[id]['online'] = true;
-    console.log(output);
-    io.emit('message', output);
+    send_output(output);
 };
 
 function hasName(id) {
@@ -123,15 +132,20 @@ var cmd_nick = function(socket, id, name) {
 
 var cmd_me = function(socket, id, msg) {
     var output = getName(id) + ' ' + msg;
-    console.log(output);
-    io.emit('message', output);
+    send_output(output);
+};
+
+var cmd_clear = function() {
+    send_output('Logs cleared.');
+    lines.length = 0;
 };
 
 var cmds = {
     'online': cmd_online,
     'who': cmd_who,
     'nick': cmd_nick,
-    'me': cmd_me
+    'me': cmd_me,
+    'clear': cmd_clear
 };
 
 server.listen(app.get('port'), function() {
